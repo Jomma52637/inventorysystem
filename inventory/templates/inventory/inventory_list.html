@@ -1,0 +1,133 @@
+{% extends 'inventory/base.html' %}
+
+{% block title %}Inventory List{% endblock %}
+
+{% block content %}
+    <h1 class="mb-4">Inventory List</h1>
+    <a href="{% url 'add_inventory_item' %}" class="btn btn-primary mb-3">Add Item</a>
+    <ul class="list-group">
+        {% for item in items %}
+        <li class="list-group-item">
+            <strong>{{ item.equipment_name }}</strong> - 
+            {% if item.technician %}
+                <span>{{ item.technician }}</span> - 
+            {% else %}
+                <span>Not Assigned</span> - 
+            {% endif %}
+            {% if item.checked_in %}
+                <span class="badge bg-success">Checked In</span>
+            {% else %}
+                <span class="badge bg-danger">Checked Out</span> 
+                {% if item.checked_out_date %}
+                    - <span>Checked Out Date: {{ item.checked_out_date|date:"m/d/Y" }}</span>
+                {% endif %}
+                <button class="btn btn-success btn-sm float-end" data-bs-toggle="modal" data-bs-target="#checkInModal{{ item.id }}">Check In</button>
+
+                <!-- Modal -->
+                <div class="modal fade" id="checkInModal{{ item.id }}" tabindex="-1" aria-labelledby="checkInModalLabel{{ item.id }}" aria-hidden="true" data-bs-backdrop="static">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="checkInModalLabel{{ item.id }}">Check In Item</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form method="post" action="{% url 'check_in_inventory_item' item.id %}" id="check-in-form{{ item.id }}">
+                                    {% csrf_token %}
+                                    <div class="mb-3">
+                                        <label for="barcode-{{ item.id }}" class="form-label">Scan QR Code</label>
+                                        <input type="text" id="barcode-{{ item.id }}" name="barcode" class="form-control" required>
+                                    </div>
+                                    <div id="scanner-container{{ item.id }}" class="scanner-container mb-3"></div>
+                                    <button type="submit" class="btn btn-primary d-none">Submit</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+            - {{ item.barcode }}
+        </li>
+        {% endfor %}
+    </ul>
+{% endblock %}
+
+{% block extra_scripts %}
+<script type="module">
+    import QrScanner from 'https://cdn.jsdelivr.net/npm/qr-scanner@1.2.0/qr-scanner.min.js';
+    QrScanner.WORKER_PATH = 'https://cdn.jsdelivr.net/npm/qr-scanner@1.2.0/qr-scanner-worker.min.js';
+
+    document.addEventListener("DOMContentLoaded", function() {
+        document.querySelectorAll('[id^="checkInModal"]').forEach(modal => {
+            const itemId = modal.id.replace('checkInModal', '');
+            const scannerContainer = document.querySelector(`#scanner-container${itemId}`);
+            const barcodeInput = document.querySelector(`#barcode-${itemId}`);
+            const checkInForm = document.querySelector(`#check-in-form${itemId}`);
+
+            if (scannerContainer && barcodeInput) {
+                let qrScanner;
+                const startScanner = () => {
+                    const videoElem = document.createElement('video');
+                    videoElem.style.width = '100%';  // Ensure the video covers the container width
+                    videoElem.style.height = '200px';  // Set the fixed height for the video
+                    scannerContainer.appendChild(videoElem);
+
+                    qrScanner = new QrScanner(videoElem, result => {
+                        barcodeInput.value = result;
+                        checkInForm.submit();
+                    });
+
+                    qrScanner.start().catch(err => {
+                        console.error("Error starting QrScanner:", err);
+                    });
+                };
+
+                const stopScanner = () => {
+                    if (qrScanner) {
+                        qrScanner.stop().catch(err => {
+                            console.error("Error stopping QrScanner:", err);
+                        });
+                    }
+                };
+
+                modal.addEventListener('shown.bs.modal', startScanner);
+                modal.addEventListener('hidden.bs.modal', stopScanner);
+            }
+        });
+    });
+</script>
+{% endblock %}
+
+<style>
+    .scanner-container {
+        position: relative;
+        width: 100%;
+        height: 200px; /* Fixed height */
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 10px;
+    }
+
+    .scanner-container video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover; /* Ensure the video covers the container without resizing */
+    }
+
+    .modal-dialog-centered {
+        max-width: 600px; /* Adjust modal width as needed */
+    }
+
+    .modal-header {
+        background-color: #f8f9fa;
+    }
+
+    .modal-title {
+        font-weight: bold;
+    }
+
+    .btn-close {
+        margin-left: auto;
+    }
+</style>

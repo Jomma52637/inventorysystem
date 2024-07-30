@@ -1,0 +1,9 @@
+{% extends "inventory/base.html" %}
+{% block title %}Already Logged Out{% endblock %}
+{% block content %}
+<div class="container">
+    <h2>Already Logged Out</h2>
+    <p>You are already logged out.</p>
+    <p>You can <a href="{% url 'user-login' %}">log in again</a> if needed.</p>
+</div>
+{% endblock content %}

@@ -1,0 +1,15 @@
+{% extends 'inventory/base.html' %}
+
+{% block title %}Add Technician{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <h1 class="my-4">Add Technician</h1>
+
+        <form method="post" class="needs-validation" novalidate>
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn btn-primary">Add Technician</button>
+        </form>
+    </div>
+{% endblock %}

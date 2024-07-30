@@ -1,0 +1,55 @@
+{% extends 'inventory/base.html' %}
+
+{% block title %}Technician List{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <h1 class="my-4">Technician List</h1>
+
+        <!-- Button to Add New Technician -->
+        <a href="{% url 'add_technician' %}" class="btn btn-primary mb-3">Add New Technician</a>
+
+        <!-- Button to Add Inventory Item -->
+        <a href="{% url 'add_inventory_item' %}" class="btn btn-secondary mb-3 ms-2">Add New Item</a>
+
+        <div class="mb-3">
+            <a href="?status=active" class="btn btn-outline-primary {% if request.GET.status != 'inactive' %}active{% endif %}">Active</a>
+            <a href="?status=inactive" class="btn btn-outline-secondary {% if request.GET.status == 'inactive' %}active{% endif %}">Inactive</a>
+        </div>
+
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for technician in technicians %}
+                <tr>
+                    <td>{{ technician.tech_name }}</td>
+                    <td>{{ technician.active|yesno:"Active,Inactive" }}</td>
+                    <td>
+                        {% if technician.active %}
+                            <form action="{% url 'deactivate_technician' technician.id %}" method="post" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-warning btn-sm">Deactivate</button>
+                            </form>
+                        {% else %}
+                            <form action="{% url 'reactivating_technician' technician.id %}" method="post" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-success btn-sm">Reactivate</button>
+                            </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3" class="text-center">No technicians available.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

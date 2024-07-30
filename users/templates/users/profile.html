@@ -1,0 +1,24 @@
+{% extends "inventory/base.html" %}
+<!-- -->
+{% block content %}
+<div class="container">
+  <h1>{{ user.username }}</h1>
+  <h2>Tasks by {{ user.username }}</h2>
+  {% for task in tasks %}
+                <div class="col-12 mb-3 py-3"> <!-- Full width column to ensure vertical stacking -->
+                    <form method="post" action="{% url 'update_task_status_history' %}" style="display: inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="task_id" value="{{ task.task_id }}">
+                        <div class="card w-100"> <!-- Full width card to fill column width -->
+                            <h5 class="card-header"><strong>Task {%if task.task_complete %}was {% endif %}{%if not task.task_complete %}is {% endif %}due on: </strong>{{task.task_due}}</h5>
+                            <div class="card-body">
+                                <h5 class="card-title">{{ task.task_name }}</h5>
+                            </div>
+                            <a class="btn btn-outline-danger" href="{% url 'task-delete' pk=task.pk %}">Delete</a>
+                        </div>
+                    </form>
+                </div>
+            {% endfor %}
+</div>
+<!-- -->
+{% endblock content %}
