@@ -8,16 +8,16 @@
     <ul class="list-group">
         {% for item in items %}
         <li class="list-group-item">
-            <strong>{{ item.equipment_name }}</strong> - 
+            <strong>{{ item.equipment_name }}</strong> -
             {% if item.technician %}
-                <span>{{ item.technician }}</span> - 
+                <span>{{ item.technician }}</span> -
             {% else %}
-                <span>Not Assigned</span> - 
+                <span>Not Assigned</span> -
             {% endif %}
             {% if item.checked_in %}
                 <span class="badge bg-success">Checked In</span>
             {% else %}
-                <span class="badge bg-danger">Checked Out</span> 
+                <span class="badge bg-danger">Checked Out</span>
                 {% if item.checked_out_date %}
                     - <span>Checked Out Date: {{ item.checked_out_date|date:"m/d/Y" }}</span>
                 {% endif %}
@@ -38,7 +38,9 @@
                                         <label for="barcode-{{ item.id }}" class="form-label">Scan QR Code</label>
                                         <input type="text" id="barcode-{{ item.id }}" name="barcode" class="form-control" required>
                                     </div>
-                                    <div id="scanner-container{{ item.id }}" class="scanner-container mb-3"></div>
+                                    <div id="scanner-container{{ item.id }}" class="scanner-container mb-3">
+                                        <video id="video-{{ item.id }}" style="width: 100%; height: 100%;"></video>
+                                    </div>
                                     <button type="submit" class="btn btn-primary d-none">Submit</button>
                                 </form>
                             </div>
@@ -53,46 +55,60 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script type="module">
-    import QrScanner from 'https://cdn.jsdelivr.net/npm/qr-scanner@1.2.0/qr-scanner.min.js';
-    QrScanner.WORKER_PATH = 'https://cdn.jsdelivr.net/npm/qr-scanner@1.2.0/qr-scanner-worker.min.js';
-
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.2/umd/index.min.js"></script>
+<script>
     document.addEventListener("DOMContentLoaded", function() {
         document.querySelectorAll('[id^="checkInModal"]').forEach(modal => {
             const itemId = modal.id.replace('checkInModal', '');
-            const scannerContainer = document.querySelector(`#scanner-container${itemId}`);
+            const videoElement = document.querySelector(`#video-${itemId}`);
             const barcodeInput = document.querySelector(`#barcode-${itemId}`);
             const checkInForm = document.querySelector(`#check-in-form${itemId}`);
+            const codeReader = new ZXing.BrowserQRCodeReader();
 
-            if (scannerContainer && barcodeInput) {
-                let qrScanner;
-                const startScanner = () => {
-                    const videoElem = document.createElement('video');
-                    videoElem.style.width = '100%';  // Ensure the video covers the container width
-                    videoElem.style.height = '200px';  // Set the fixed height for the video
-                    scannerContainer.appendChild(videoElem);
+            let formSubmitted = false; // Flag to prevent multiple submissions
 
-                    qrScanner = new QrScanner(videoElem, result => {
-                        barcodeInput.value = result;
+            const handleQRCode = (result) => {
+                barcodeInput.value = result.text;
+
+                const technicianField = document.querySelector('[name="technician_name"]');
+
+                if (barcodeInput.value.trim() === '') {
+                    alert('Please scan a QR code.');
+                    return;
+                }
+
+                if (technicianField && technicianField.value.trim() === '') {
+                    alert('Please select a technician.');
+                    return;
+                }
+
+                if (!formSubmitted) {
+                    formSubmitted = true;
+                    setTimeout(() => {
                         checkInForm.submit();
-                    });
+                    }, 1000);
+                }
+            };
 
-                    qrScanner.start().catch(err => {
-                        console.error("Error starting QrScanner:", err);
-                    });
-                };
-
-                const stopScanner = () => {
-                    if (qrScanner) {
-                        qrScanner.stop().catch(err => {
-                            console.error("Error stopping QrScanner:", err);
-                        });
+            const startScanner = () => {
+                codeReader.decodeFromVideoDevice(null, videoElement, (result, error) => {
+                    if (result) {
+                        handleQRCode(result);
                     }
-                };
+                    if (error) {
+                        console.error("Scanning error:", error);
+                    }
+                }).catch(err => {
+                    console.error("Error starting ZXing QR Code scanner:", err);
+                });
+            };
 
-                modal.addEventListener('shown.bs.modal', startScanner);
-                modal.addEventListener('hidden.bs.modal', stopScanner);
-            }
+            const stopScanner = () => {
+                codeReader.reset(); // Stop scanning when the modal is hidden
+            };
+
+            modal.addEventListener('shown.bs.modal', startScanner);
+            modal.addEventListener('hidden.bs.modal', stopScanner);
         });
     });
 </script>

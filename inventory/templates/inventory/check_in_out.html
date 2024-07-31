@@ -3,75 +3,94 @@
 {% block title %}Check In/Out{% endblock %}
 
 {% block content %}
-    <h1>Check In/Out Inventory Item</h1>
-    
-    {% if messages %}
-        <div class="alert alert-warning" role="alert">
-            {% for message in messages %}
-                {{ message }}
-            {% endfor %}
+<h1>Check In/Out Inventory Item</h1>
+
+{% if messages %}
+    <div class="alert alert-warning" role="alert">
+        {% for message in messages %}
+            {{ message }}
+        {% endfor %}
+    </div>
+{% endif %}
+
+<div class="d-flex justify-content-between" style="align-items: flex-start; height: 100vh;">
+    <!-- Form on the left -->
+    <div class="form-container" style="flex: 1; padding-right: 20px;">
+        <form method="post" id="check-in-out-form">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="id_barcode">Barcode</label>
+                <input type="text" id="id_barcode" name="barcode" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="id_technician_name">Technician</label>
+                {{ form.technician_name }}
+            </div>
+            <button type="submit" class="btn btn-primary">Submit</button>
+        </form>
+    </div>
+
+    <!-- Camera on the right -->
+    <div id="scanner-container" style="flex: 1; display: flex; justify-content: center; align-items: center;">
+        <div style="position: relative; width: 100%; max-width: 400px; padding-top: 75%; border-radius: 5px; background-color: #000;">
+            <video id="video" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 5px;"></video>
         </div>
-    {% endif %}
+    </div>
+</div>
 
-    <form method="post" id="check-in-out-form">
-        {% csrf_token %}
-        <div class="form-group">
-            <label for="id_barcode">Barcode</label>
-            <input type="text" id="id_barcode" name="barcode" class="form-control" required>
-        </div>
-        <div class="form-group">
-            <label for="id_technician_name">Technician</label>
-            {{ form.technician_name }}
-        </div>
-        <button type="submit" class="btn btn-primary">Submit</button>
-    </form>
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.2/umd/index.min.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const videoElement = document.querySelector('#video');
+        const form = document.getElementById('check-in-out-form');
+        const codeReader = new ZXing.BrowserQRCodeReader();
 
-    <div id="scanner-container"></div>
+        let formSubmitted = false;
 
-    {% block scripts %}
-    <script type="module">
-        import QrScanner from 'https://cdn.jsdelivr.net/npm/qr-scanner@1.2.0/qr-scanner.min.js';
-        QrScanner.WORKER_PATH = 'https://cdn.jsdelivr.net/npm/qr-scanner@1.2.0/qr-scanner-worker.min.js';
+        const handleQRCode = (result) => {
+            const barcodeInput = document.getElementById('id_barcode');
+            barcodeInput.value = result.text;
 
-        document.addEventListener("DOMContentLoaded", function() {
-            const scannerContainer = document.querySelector('#scanner-container');
-            const videoElem = document.createElement('video');
-            videoElem.style.width = '100%';
-            videoElem.style.height = '200px';
-            scannerContainer.appendChild(videoElem);
+            const technicianField = document.querySelector('[name="technician_name"]');
 
-            let formSubmitted = false; // Flag to prevent multiple submissions
+            if (barcodeInput.value.trim() === '') {
+                alert('Please scan a QR code.');
+                return;
+            }
 
-            const qrScanner = new QrScanner(videoElem, (result) => {
-                document.getElementById('id_barcode').value = result;
+            if (technicianField && technicianField.value.trim() === '') {
+                alert('Please select a technician.');
+                return;
+            }
 
-                if (!formSubmitted) {
-                    formSubmitted = true;
-                    
-                    // Check if technician field is empty
-                    const technicianField = document.querySelector('[name="technician_name"]');
-                    if (technicianField && technicianField.value.trim() === '') {
-                        alert('Please select a technician.');
-                        formSubmitted = false; // Prevent form submission
-                    } else {
-                        // Delay form submission by 1 second (1000 milliseconds)
-                        setTimeout(() => {
-                            document.getElementById('check-in-out-form').submit();
-                        }, 1000);
-                    }
+            if (!formSubmitted) {
+                formSubmitted = true;
+                setTimeout(() => {
+                    form.submit();
+                }, 1000);
+            }
+        };
+
+        const startScanning = () => {
+            codeReader.decodeFromVideoDevice(null, videoElement, (result, error) => {
+                if (result) {
+                    handleQRCode(result);
                 }
+                if (error) {
+                    console.error("Scanning error:", error);
+                }
+            }).catch(err => {
+                console.error("Error starting ZXing QR Code scanner:", err);
             });
+        };
 
-            qrScanner.start().catch(err => {
-                console.error("Error starting QrScanner:", err);
-            });
+        startScanning();
 
-            document.getElementById('check-in-out-form').addEventListener('submit', function() {
-                qrScanner.stop().catch(err => {
-                    console.error("Error stopping QrScanner:", err);
-                });
-            });
+        form.addEventListener('submit', function() {
+            codeReader.reset(); // Stop scanning when the form is submitted
         });
-    </script>
-    {% endblock %}
+    });
+</script>
+{% endblock %}
 {% endblock %}

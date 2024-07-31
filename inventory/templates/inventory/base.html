@@ -22,9 +22,9 @@
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarToggler" aria-controls="navbarToggler" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-
+                
                 <div class="collapse navbar-collapse" id="navbarToggler">
-                    <ul class="navbar-nav mr-auto">
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'inventory_list' %}">Inventory List</a>
                         </li>
@@ -32,17 +32,31 @@
                             <a class="nav-link" href="{% url 'check_in_out' %}">Check In/Out</a>
                         </li>
                     </ul>
-                </div>
-                <div class="navbar-nav px-3">
-                    {% if user.is_authenticated %}
-                    {% if is_admin %}
-                    <a class="nav-item nav-link" href="{% url 'admin_dashboard' %}">Admin Dashboard</a>
-                    {% endif %}
-                    <a class="nav-item nav-link" href="{% url 'user-logout' %}">Logout</a>
-                    {% else %}
-                    <a class="nav-item nav-link" href="{% url 'user-login' %}">Log in</a>
-                    <a class="nav-item nav-link" href="{% url 'user-register' %}">Register</a>
-                    {% endif %}
+                    
+                    <hr class="d-md-none" style="border-width: 2px; border-color: #000;">
+                    
+                    <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                        {% if user.is_authenticated %}
+                        {% if is_admin %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'admin_dashboard' %}">Admin Dashboard</a>
+                            </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'admin_dashboard' %}">Settings</a>
+                        </li>
+                        {% endif %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'user-logout' %}">Logout</a>
+                        </li>
+                        {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'user-login' %}">Log in</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'user-register' %}">Register</a>
+                        </li>
+                        {% endif %}
+                    </ul>
                 </div>
             </nav>
         </header>

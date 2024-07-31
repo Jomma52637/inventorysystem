@@ -4,70 +4,67 @@
 
 {% block content %}
 <h1>Add Inventory Item</h1>
-<form method="post" id="inventory-form">
-    {% csrf_token %}
-    <div class="form-group">
-        {{ form.non_field_errors }}
-        {{ form.as_p }}
+
+<div class="d-flex justify-content-between" style="align-items: flex-start;">
+    <!-- Form on the left -->
+    <div class="form-container" style="flex: 1; padding-right: 20px;">
+        <form method="post" id="inventory-form">
+            {% csrf_token %}
+            <div class="form-group">
+                {{ form.non_field_errors }}
+                {{ form.as_p }}
+            </div>
+            <button type="submit" class="btn btn-primary">Add Item</button>
+        </form>
     </div>
-    <button type="submit" class="btn btn-primary">Add Item</button>
-</form>
 
-<div id="scanner-container"></div>
+    <!-- Camera on the right -->
+    <div id="scanner-container" style="flex: 1; display: flex; justify-content: center; align-items: center;">
+        <div style="position: relative; width: 100%; max-width: 400px; padding-top: 75%; border-radius: 5px; background-color: #000;">
+            <video id="video" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 5px;"></video>
+        </div>
+    </div>
+</div>
 
-{% block scripts %}
-<script type="module">
-    import QrScanner from 'https://cdn.jsdelivr.net/npm/qr-scanner@1.2.0/qr-scanner.min.js';
-    QrScanner.WORKER_PATH = 'https://cdn.jsdelivr.net/npm/qr-scanner@1.2.0/qr-scanner-worker.min.js';
-
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.2/umd/index.min.js"></script>
+<script>
     document.addEventListener("DOMContentLoaded", function() {
-        const scannerContainer = document.querySelector('#scanner-container');
-        const videoElem = document.createElement('video');
-        videoElem.style.width = '100%';  // Full width of the container
-        videoElem.style.height = '200px'; // Fixed height for the video
-        scannerContainer.appendChild(videoElem);
+        const videoElement = document.querySelector('#video');
+        const form = document.getElementById('inventory-form');
+        const codeReader = new ZXing.BrowserQRCodeReader();
 
-        let formSubmitted = false; // Flag to prevent multiple submissions
+        let formSubmitted = false;
 
-        const qrScanner = new QrScanner(videoElem, (result) => {
-            console.log("Detected QR Code Data:", result);
-            // Set barcode field with scanned result
-            document.getElementById('id_barcode').value = result;
+        const handleQRCode = (result) => {
+            console.log("Detected QR Code Data:", result.text);
+            document.getElementById('id_barcode').value = result.text;
 
             if (!formSubmitted) {
                 formSubmitted = true;
-                document.getElementById('inventory-form').submit();
+                form.submit();
             }
-        });
+        };
 
-        qrScanner.start().catch(err => {
-            console.error("Error starting QrScanner:", err);
-        });
-
-        document.getElementById('inventory-form').addEventListener('submit', function() {
-            qrScanner.stop().catch(err => {
-                console.error("Error stopping QrScanner:", err);
+        const startScanner = () => {
+            codeReader.decodeFromVideoDevice(null, videoElement, (result, error) => {
+                if (result) {
+                    handleQRCode(result);
+                }
+                if (error) {
+                    console.error("Scanning error:", error);
+                }
+            }).catch(err => {
+                console.error("Error starting ZXing QR Code scanner:", err);
             });
+        };
+
+        startScanner();
+
+        form.addEventListener('submit', function() {
+            codeReader.reset(); // Stop scanning when the form is submitted
         });
     });
 </script>
 {% endblock %}
 {% endblock %}
-
-<style>
-    #scanner-container {
-        position: relative;
-        width: 100%; /* Full width */
-        height: 200px; /* Fixed height */
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        overflow: hidden;
-        margin-top: 20px;
-    }
-
-    #scanner-container video {
-        width: 100%;
-        height: 100%;
-        object-fit: cover; /* Ensure the video covers the container without resizing */
-    }
-</style>
