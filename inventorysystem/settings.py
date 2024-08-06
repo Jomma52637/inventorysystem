@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-)7*47w#w3ro%u@265(l(k7d)-j*z1-h@+_f-g1kof^823tg3+7
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['james52637.pythonanywhere.com']
+ALLOWED_HOSTS = []
 
 
 # Application definition
@@ -53,6 +53,16 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'oliver.james52637@gmail.com'
+EMAIL_HOST_PASSWORD = 'otlz zlyk wcga bqgj'
+
+# Default email address for sending emails
+DEFAULT_FROM_EMAIL = 'Oliver.James52637@gmail.com'
 
 ROOT_URLCONF = 'inventorysystem.urls'
 

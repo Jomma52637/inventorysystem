@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import inventory_list, add_inventory_item, technician_list, add_technician, deactivate_technician, reactivating_technician, delete_inventory_item, check_in_out, check_in_inventory_item
+from .views import inventory_list, add_inventory_item, technician_list, add_technician, deactivate_technician, reactivating_technician, delete_inventory_item, check_in_out, check_in_inventory_item, settings_view, add_user_view, change_password_view
 
 urlpatterns = [
     path('inventory/', inventory_list, name='inventory_list'),
@@ -11,5 +11,7 @@ urlpatterns = [
     path('inventory/delete/<int:item_id>/', delete_inventory_item, name='delete_inventory_item'),
     path('inventory/check-in-out/', check_in_out, name='check_in_out'),
     path('check-in/<int:item_id>/', check_in_inventory_item, name='check_in_inventory_item'),
-
+    path('settings/', settings_view, name='settings'),
+    path('add_user/', add_user_view, name='add_user'),
+    path('change_password/', change_password_view, name='change_password'),
 ]

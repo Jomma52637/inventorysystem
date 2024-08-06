@@ -4,18 +4,24 @@ from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from . import forms
-
+from .models import UserProfile
 
 def register(request):
     if request.method == "POST":
         form = forms.UserRegisterForm(request.POST)
         if form.is_valid():
-            form.save()
+            # Save the user first
+            user = form.save()
             username = form.cleaned_data.get('username')
+
+            # Create a UserProfile for the new user
+            UserProfile.objects.create(user=user)
+
             messages.success(request, f"{username}, your account is created, please login.")
             return redirect('user-login')
     else:
         form = forms.UserRegisterForm()
+        
     return render(request, 'users/register.html', {'form': form})
 
 # @login_required

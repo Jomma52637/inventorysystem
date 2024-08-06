@@ -1,0 +1,9 @@
+{% extends 'inventory/base.html' %}
+
+{% block content %}
+<div class="mb-4">
+    <h2>Add User</h2>
+    <a href="{% url 'add_user' %}" class="btn btn-primary">Add Office User</a>
+    <a href="{% url 'change_password' %}" class="btn btn-secondary">Change Password</a>
+</div>
+{% endblock %}

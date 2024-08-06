@@ -1,6 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.core.exceptions import MultipleObjectsReturned
+from django.contrib.auth import update_session_auth_hash
 from .models import InventoryItem
 from .forms import InventoryItemForm
 from users import models as userModels
@@ -9,18 +11,95 @@ from django.utils import timezone
 from django.urls import reverse
 from django.db import IntegrityError
 from django.contrib import messages
+from django.contrib.auth.forms import PasswordChangeForm,UserCreationForm
+from users.forms import SubUserForm
+from users.models import SubUser
+from django.core.mail import send_mail
+from django.conf import settings
 
+@login_required
+def settings_view(request):
+    return render(request, 'admin/settings.html')
+
+@login_required
+def add_user_view(request):
+    if request.method == 'POST':
+        username = request.POST['username']
+        email = request.POST['email']
+        password = User.objects.make_random_password()
+
+        # Ensure parent user profile is retrieved
+        try:
+            parent_profile = UserProfile.objects.get(user=request.user)
+        except UserProfile.DoesNotExist:
+            messages.error(request, 'Your profile does not exist.')
+            return redirect('settings')
+
+        # Create the user
+        user = User(username=username, email=email)
+        user.set_password(password)
+        user.save()
+
+        # Create the SubUser linked to the UserProfile
+        SubUser.objects.create(parentAccount=parent_profile, user=user)
+
+        try:
+            # Send email with login details
+            send_mail(
+                'Your new account details',
+                f'Hi {username},\n\nYour account has been created. Here are your login details:\n\nUsername: {username}\nPassword: {password}\n\nPlease log in and change your password as soon as possible.',
+                settings.DEFAULT_FROM_EMAIL,
+                [email],
+                fail_silently=False,
+            )
+            messages.success(request, f'Sub-user {username} created successfully. An email with login details has been sent.')
+        except Exception as e:
+            messages.error(request, f'Sub-user {username} created, but there was an error sending the email: {str(e)}')
+
+        return redirect('settings')
+
+    return render(request, 'admin/add_user.html')
+
+@login_required
+def change_password_view(request):
+    if request.method == 'POST':
+        form = PasswordChangeForm(user=request.user, data=request.POST)
+        if form.is_valid():
+            user = form.save()
+            update_session_auth_hash(request, user)
+            return redirect('settings')
+    else:
+        form = PasswordChangeForm(user=request.user)
+    return render(request, 'admin/change_password.html', {'form': form})
 
 @login_required
 def inventory_list(request):
-    # Get the user profile associated with the logged-in user
-    user_profile = request.user.userprofile
-    
-    # Filter inventory items to include only those associated with the user's profile
-    items = InventoryItem.objects.filter(user_profile=user_profile)
-    
-    return render(request, 'inventory/inventory_list.html', {'items': items})
+    # Initialize variables for user profile and filtered items
+    user_profile = None
+    items = InventoryItem.objects.none()  # Default to no items
 
+    try:
+        # Try to get the user profile if it exists
+        user_profile = UserProfile.objects.get(user=request.user)
+        # Filter inventory items to include only those associated with the user's profile
+        items = InventoryItem.objects.filter(user_profile=user_profile)
+    except UserProfile.DoesNotExist:
+        # Handle the case where UserProfile does not exist
+        pass
+
+    # Check if the user is a sub-user
+    try:
+        sub_user = SubUser.objects.get(user=request.user)
+        # If the user is a sub-user, get the parent UserProfile
+        if not user_profile:
+            # Get parent UserProfile using the sub-user's parentAccount
+            user_profile = sub_user.parentAccount
+            items = InventoryItem.objects.filter(user_profile=user_profile)
+    except SubUser.DoesNotExist:
+        # Handle the case where the user is neither a main user nor a sub-user
+        pass
+
+    return render(request, 'inventory/inventory_list.html', {'items': items})
 @login_required
 def check_in_inventory_item(request, item_id):
     print("Received request to check in item:", item_id)  # Debugging line
